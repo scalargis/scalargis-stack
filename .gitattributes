@@ -2,3 +2,4 @@
 *.ps1 text eol=crlf
 *.png binary
 setup.ps1 linguist-detectable=false
+configs/*.py linguist-detectable=false
