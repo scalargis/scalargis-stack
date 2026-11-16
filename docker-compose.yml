@@ -1,0 +1,86 @@
+name: scalargis
+
+x-app: &app
+  image: scalargis-app:local
+  env_file: .env
+  environment:
+    PYTHONPATH: /var/scalargis/scalargis
+  volumes:
+    - ./configs/installation.py:/var/scalargis/scalargis/configs/installation.py:ro
+    - uploads:/var/scalargis/scalargis/uploads
+    - tmp:/var/scalargis/scalargis/tmp
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+
+services:
+  server-image:
+    build: ./scalargis-server
+    image: scalargis-server:local
+    profiles: ["build"]
+
+  db:
+    image: postgis/postgis:18-3.6
+    env_file: .env
+    volumes:
+      - db-data:/var/lib/postgresql
+    shm_size: 256mb
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  scalargis:
+    <<: *app
+    build:
+      context: .
+      additional_contexts:
+        server: service:server-image
+    command: ["gunicorn", "-c", "/var/scalargis/scalargis/gunicorn.conf.py"]
+
+  worker:
+    <<: *app
+    command: ["python3", "/var/scalargis/scalargis/worker.py"]
+
+  geoserver:
+    image: docker.osgeo.org/geoserver:${GS_VERSION}
+    environment:
+      EXTRA_JAVA_OPTS: ${GS_JAVA_OPTS}
+      GEOSERVER_ADMIN_USER: ${GEOSERVER_ADMIN_USER}
+      GEOSERVER_ADMIN_PASSWORD: ${GEOSERVER_ADMIN_PASSWORD}
+      GEOSERVER_DATA_DIR: /opt/geoserver/data-dir
+      GEOWEBCACHE_CACHE_DIR: /opt/geoserver/gwc-dir
+      GEOSERVER_LOG_LOCATION: /opt/geoserver/logs/geoserver.log
+      INSTALL_EXTENSIONS: "true"
+      STABLE_EXTENSIONS: authkey,excel,geopkg-output,importer,inspire,monitor,vectortiles
+      PROXY_BASE_URL: $${X-Forwarded-Proto}://$${Host}/geoserver
+      PROXY_BASE_URL_HEADERS: "true"
+    volumes:
+      - geoserver-data:/opt/geoserver/data-dir
+      - geoserver-gwc:/opt/geoserver/gwc-dir
+      - geoserver-logs:/opt/geoserver/logs
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+
+  proxy:
+    image: nginx:1.28-alpine
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    volumes:
+      - ./proxy/default.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
+    depends_on:
+      - scalargis
+
+volumes:
+  db-data:
+  uploads:
+  tmp:
+  geoserver-data:
+  geoserver-gwc:
+  geoserver-logs:

@@ -1,0 +1,6 @@
+[submodule "scalargis-server"]
+	path = scalargis-server
+	url = https://github.com/scalargis/scalargis-server.git
+[submodule "scalargis-client"]
+	path = scalargis-client
+	url = https://github.com/scalargis/scalargis-client.git

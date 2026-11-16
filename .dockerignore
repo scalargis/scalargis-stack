@@ -1,0 +1,9 @@
+*
+!scalargis-client
+!configs/.env.viewer
+!configs/.env.backoffice
+
+scalargis-client/node_modules
+scalargis-client/dist
+scalargis-client/.nx
+**/.git
