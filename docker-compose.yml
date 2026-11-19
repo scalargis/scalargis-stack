@@ -68,7 +68,7 @@ services:
         condition: service_healthy
 
   proxy:
-    image: nginx:1.28-alpine
+    image: nginx:1.30.7-alpine
     ports:
       - "${HTTP_PORT:-80}:80"
     volumes:
