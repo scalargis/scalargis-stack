@@ -1,4 +1,4 @@
-FROM node:24.22.1 AS client
+FROM node:24.22.3 AS client
 
 WORKDIR /var/scalargis
 
